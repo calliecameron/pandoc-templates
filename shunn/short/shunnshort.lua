@@ -6,7 +6,18 @@ require "filters.docx.processheader"
 
 vars = {}
 
-function Pandoc(doc, meta)
+local verbose = false
+
+function get_verbose(meta)
+  if meta['shunn_verbose'] == '1' then
+    verbose = true
+  end
+  meta['shunn_verbose'] = nil
+  return meta
+end
+
+
+function process_docx(doc, meta)
   local pandoc_data_dir = os.getenv('PANDOC_DATA_DIR')
   local ossep = package.config:sub(1,1)
 
@@ -23,19 +34,25 @@ function Pandoc(doc, meta)
   -- https://stackoverflow.com/questions/295052/how-can-i-determine-the-os-of-the-system-from-within-a-lua-script
   if ossep == '/' then
     -- *nix (MacOS, Linux) should have zip available
-    print("Zipping reference.docx using UNIX zip.")
+    if verbose then
+      print("Zipping reference.docx using UNIX zip.")
+    end
     os.execute ("cd "
       .. pandoc_data_dir
       .. "/reference && zip -r ../reference.docx * > /dev/null")
   elseif ossep == '\\' then
     -- Windows should have powershell
-    print("Zipping reference.zip using PowerShell.")
+    if verbose then
+      print("Zipping reference.zip using PowerShell.")
+    end
     os.execute("powershell Compress-Archive -Path "
       .. pandoc_data_dir
       .. "\\reference\\* "
       .. pandoc_data_dir
       .. "\\reference.zip")
-    print("Renaming reference.zip to reference.docx.")
+    if verbose then
+      print("Renaming reference.zip to reference.docx.")
+    end
     os.execute("powershell Rename-Item -Path "
       .. pandoc_data_dir
       .. "\\reference.zip -NewName "
@@ -47,3 +64,4 @@ function Pandoc(doc, meta)
   end
 end
 
+return {{Meta = get_verbose}, {Pandoc = process_docx}}
